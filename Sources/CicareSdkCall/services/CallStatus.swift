@@ -10,6 +10,7 @@ import Foundation
 enum CallStatus: String {
     case initializing
     case incoming
+    case answering
     case connected
     case connecting
     case ringing

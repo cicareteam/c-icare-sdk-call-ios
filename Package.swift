@@ -28,7 +28,7 @@ let package = Package(
                 .product(name: "WebRTC", package: "WebRTC")
             ],
             resources: [
-                .process("Assets") // <- ini penting
+                .process("Assets") // <- ini penting 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
             ]
         ),
         .testTarget(

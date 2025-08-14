@@ -21,7 +21,7 @@ public class CicareSdkCall {
     
             
     public init() {
-        
+        _ = NotificationManager.shared
         APIService.shared.baseURL = "https://sip-gw.c-icare.cc:8443/"
         APIService.shared.apiKey = "xHNYBNtmnckl8GJXQoBSMQTz8oJsa3j5zKk5FK00Y5uOXGzwXcot7u5WM8gIpV8dFQsLNaaozMt8k3Y1fTSSxQyzOAMeuFPIzPNqJhk0GDvjHGkBBkeqZNFU5UlRF4aj"
     }
@@ -59,7 +59,7 @@ public class CicareSdkCall {
             callerId: callerId,
             callerName: callerName,
             callerAvatar: callerAvatar,
-            calleeId: callerId,
+            calleeId: calleeId,
             calleeName: calleeName,
             calleeAvatar: calleeAvatar,
             checkSum: checkSum

@@ -66,26 +66,8 @@ class SocketManagerSignaling: NSObject {
         socket?.connect()
     }
     
-    func initCall(completion: @escaping (Bool) -> Void) {
-        self.webrtcManager.createOffer { result in
-            switch result {
-            case .success(let sdpDesc):
-                // Kirim payload SDP ke server kapan reply lewat signaling
-                let sdpPayload: [String: Any] = [
-                    "type": sdpDesc.type.rawValue,
-                    "sdp": sdpDesc.sdp
-                ]
-                let payload: [String: Any] = [
-                    "is_caller": true,
-                    "sdp": sdpPayload
-                ]
-                self.send(event: "INIT_CALL", data: payload)
-                completion(true)
-            case .failure(let error):
-                print("Failed to create offer:", error.localizedDescription)
-                completion(false)
-            }
-        }
+    func initCall() {
+        self.send(event: "INIT_CALL", data: [:])
     }
 
     private func registerHandlers() {
@@ -94,7 +76,50 @@ class SocketManagerSignaling: NSObject {
         socket?.on(clientEvent: .statusChange) { data, _ in
             print("data socket status: \(data)")
         }
+        socket?.on("INIT_OK") { _, _ in
+            self.onCallStateChanged(.calling)
+            self.webrtcManager.createOffer { result in
+                switch result {
+                case .success(let sdpDesc):
+                    let sdpPayload: [String: Any] = [
+                        "type": sdpDesc.type.rawValue,
+                        "sdp": sdpDesc.sdp
+                    ]
+                    let payload: [String: Any] = [
+                        "is_caller": true,
+                        "sdp": sdpPayload
+                    ]
+                    self.send(event: "SDP_OFFER", data: payload)
+                    print("SDP OFFER SENT")
+                case .failure(let error):
+                    print("Failed to create offer:", error.localizedDescription)
+                }
+            }
+        }
+        socket?.on("ANSWER_OK") { _, _ in
+            self.onCallStateChanged(.answering)
+            self.webrtcManager.initMic()
+            self.webrtcManager.createOffer { result in
+                switch result {
+                case .success(let sdpDesc):
+                    let sdpPayload: [String: Any] = [
+                        "type": sdpDesc.type.rawValue,
+                        "sdp": sdpDesc.sdp
+                    ]
+                    let payload: [String: Any] = [
+                        "is_caller": true,
+                        "sdp": sdpPayload
+                    ]
+                    self.send(event: "SDP_OFFER", data: payload)
+                case .failure(let error):
+                    print("Failed to create offer:", error.localizedDescription)
+                }
+            }
+        }
         socket?.on("ACCEPTED") { _, _ in
+            self.onCallStateChanged(.connecting)
+        }
+        socket?.on("CONNECTED") { _, _ in
             self.onCallStateChanged(.connected)
         }
         socket?.on("RINGING") { _, _ in
@@ -116,6 +141,9 @@ class SocketManagerSignaling: NSObject {
                 self.webrtcManager.setRemoteDescription(sdp: sdp)
             }
         }
+        socket?.on("SLOWLINK") { data, _ in
+            
+        }
         socket?.on("SDP_ANSWER") { data, _ in
             print("SDP ANSWER RECEIVED")
             guard let dict = data.first as? [String: Any],
@@ -130,13 +158,14 @@ class SocketManagerSignaling: NSObject {
     }
 
     func disconnect() {
+        webrtcManager.close()
         socket?.disconnect()
     }
     
     func onCallStateChanged(_ state: CallStatus) {
+        CallService.sharedInstance.postCallStatus(state)
         switch state {
         case .connected:
-            CallService.sharedInstance.postCallStatus(state)
             break
         case .ringing:
             CallService.sharedInstance.postCallStatus(state)

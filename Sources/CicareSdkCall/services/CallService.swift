@@ -35,11 +35,20 @@ final class CallService: NSObject, CXProviderDelegate {
     var callController : CXCallController?
     var currentCall : UUID?
     
+    private var voipRegistry: PKPushRegistry?
+    
     weak var delegate : CallManagerDelegate?
     
     private override init() {
         super.init()
         providerAndControllerSetup()
+        setupPushKit()
+    }
+    
+    private func setupPushKit() {
+        voipRegistry = PKPushRegistry(queue: DispatchQueue.main)
+        voipRegistry?.delegate = self
+        voipRegistry?.desiredPushTypes = [.voIP]
     }
     
     //MARK: - Setup
@@ -109,7 +118,7 @@ final class CallService: NSObject, CXProviderDelegate {
                     }
                     
                     APIService.shared.request(
-                        path: "call/sdk-outgoing",
+                        path: "api/sdk-call/one2one",
                         method: "POST",
                         body: bodyData,
                         headers: ["Content-Type": "application/json"],
@@ -117,15 +126,11 @@ final class CallService: NSObject, CXProviderDelegate {
                         switch result {
                         case .success(let callSession):
                             if let wssUrl = URL(string: callSession.server) {
-                                print("Connect to signaling \(self.currentCall)")
+                                print("Connect to signaling \(String(describing: self.currentCall))")
                                 self.postCallStatus(.calling)
                                 SocketManagerSignaling.shared.connect(wssUrl: wssUrl, token: callSession.token) { status in
                                     if status == .connected {
-                                        SocketManagerSignaling.shared.initCall { success in
-                                            if(success) {
-                                                print("Connected call \(self.currentCall)")
-                                            }
-                                        }
+                                        SocketManagerSignaling.shared.initCall()
                                     }
                                 }
                                 /*self.signaling.connect(wssUrl: wssUrl, token: callSession.token) { status in
@@ -167,6 +172,8 @@ final class CallService: NSObject, CXProviderDelegate {
     
     func endCall() {
         print("End the call")
+        self.postCallStatus(.ended)
+        NotificationManager.shared.showMissedOrEndedNotification()
         if let uuid = currentCall {
             print("uuid \(uuid)")
             let endCallAction = CXEndCallAction.init(call:uuid)
@@ -174,8 +181,6 @@ final class CallService: NSObject, CXProviderDelegate {
             transaction.addAction(endCallAction)
             requestTransaction(transaction: transaction) { success in
                 if success {
-                    self.postCallStatus(.ended)
-                    NotificationManager.shared.showMissedOrEndedNotification()
                     CallState.shared.currentCallUUID = nil
                 }
             }
@@ -307,7 +312,7 @@ final class CallService: NSObject, CXProviderDelegate {
     
 }
 
-/*extension CallService: PKPushRegistryDelegate {
+extension CallService: PKPushRegistryDelegate {
     
     func pushRegistry(_ registry: PKPushRegistry, didUpdate pushCredentials: PKPushCredentials, for type: PKPushType) {
         // Kirim token ke server untuk notifikasi VoIP
@@ -329,4 +334,3 @@ final class CallService: NSObject, CXProviderDelegate {
         completionHandler()
     }
 }
-*/

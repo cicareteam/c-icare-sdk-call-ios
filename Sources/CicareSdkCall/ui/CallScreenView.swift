@@ -109,9 +109,9 @@ public class CallScreenViewController: UIViewController {
             case .ongoing:
                 self.isConnected = true
                 self.statusLabel.text = self.metaData[statusString] ?? statusString
-                //self.updateUIForOngoingCall()
             case .ended:
                 self.isConnected = false
+                self.callDurationTimer?.invalidate()
                 self.statusLabel.text = self.metaData[statusString] ?? statusString
                 self.muteButton.isEnabled = false
                 self.speakerButton.isEnabled = false
@@ -122,12 +122,16 @@ public class CallScreenViewController: UIViewController {
             case .connected:
                 self.isConnected = true
                 self.statusLabel.text = self.metaData[statusString] ?? statusString
+                NotificationManager.shared.showOngoingCallNotification(callee: self.calleeName)
+                self.startCallDurationTimer()
             case .connecting:
                 self.statusLabel.text = self.metaData[statusString] ?? statusString
             case .ringing:
                 self.statusLabel.text = self.metaData[statusString] ?? statusString
             case .initializing:
-                self.statusLabel.text = self.metaData[statusString] ?? statusString
+                self.statusLabel.text = self.metaData[statusString] ?? self.metaData["calling"]
+            case .answering:
+                self.statusLabel.text = self.metaData[statusString] ?? self.metaData["connecting"]
             }
         }
     }
@@ -249,6 +253,28 @@ public class CallScreenViewController: UIViewController {
         ])
     }
     
+    var callDurationTimer: Timer?
+    var secondsElapsed: Int = 0
+
+    func startCallDurationTimer() {
+        callDurationTimer?.invalidate()
+        secondsElapsed = 0
+        DispatchQueue.main.async {
+          self.callDurationTimer = Timer.scheduledTimer(timeInterval: 1.0,
+                                                        target: self,
+                                                        selector: #selector(self.updateCallDuration),
+                                                        userInfo: nil,
+                                                        repeats: true)
+        }
+    }
+
+    @objc func updateCallDuration() {
+        secondsElapsed += 1
+        let minutes = secondsElapsed / 60
+        let seconds = secondsElapsed % 60
+        self.statusLabel.text = String(format: "%02d:%02d", minutes, seconds)
+    }
+    
     private func incomingbuttons()-> [UIView]{
         // Initialize the buttons and add actions via closures
         muteButton = CircleIconButton(
@@ -365,7 +391,11 @@ public class CallScreenViewController: UIViewController {
             if let uuid = CallState.shared.currentCallUUID {
                 let muteAction = CXSetMutedCallAction(call: uuid, muted: !self.isMuted)
                 let transaction = CXTransaction(action: muteAction)
-                
+                CallService.sharedInstance.requestTransaction(transaction: transaction) { success in
+                    if (success) {
+                        print("muted \(success)")
+                    }
+                }
             }
         }
         muteButton.widthAnchor.constraint(equalToConstant: 64).isActive = true
