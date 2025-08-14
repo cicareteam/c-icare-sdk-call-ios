@@ -24,6 +24,6 @@ Pod::Spec.new do |spec|
   # spec.vendored_frameworks = "Frameworks/MySDK.xcframework"
 
   # Dependencies (optional)
-  # spec.dependency "WebRTC", "~> latest"
-  # spec.dependency "socket.io-client-swift", "~> 16.1.1"
+  spec.dependency "WebRTC", "~> latest"
+  spec.dependency "Socket.IO-Client-Swift", "~> 15.2.0"
 end
