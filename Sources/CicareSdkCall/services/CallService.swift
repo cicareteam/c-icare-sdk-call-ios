@@ -327,10 +327,9 @@ extension CallService: PKPushRegistryDelegate {
         reportIncomingCall(id: uuid, handle: callerName, callerName: callerName)
     }
     
-    @available(iOS 13.0, *)
-    func pushRegistry(_ registry: PKPushRegistry, didReceiveIncomingPushWith payload: PKPushPayload, for type: PKPushType, completionHandler: @escaping () -> Void) {
+    func pushRegistry(_ registry: PKPushRegistry, didReceiveIncomingPushWith payload: PKPushPayload, for type: PKPushType, completion: @escaping () -> Void) {
         // iOS 13+ requires this method
         self.pushRegistry(registry, didReceiveIncomingPushWith: payload, for: type)
-        completionHandler()
+        completion()
     }
 }
