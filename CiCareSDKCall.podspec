@@ -12,7 +12,7 @@ Pod::Spec.new do |spec|
   spec.license      = { :type => "MIT", :file => "LICENSE" }
   spec.author       = { "C-icare Team" => "dev@c-icare.cc" }
   spec.platform     = :ios, "12.0"
-  spec.swift_version = "5.0"
+  spec.swift_version = "6.0"
 
   # Source code SDK
   spec.source       = { :git => "https://github.com/cicareteam/c-icare-sdk-call-ios.git", :tag => spec.version.to_s }
@@ -25,5 +25,12 @@ Pod::Spec.new do |spec|
 
   # Dependencies (optional)
   spec.dependency "WebRTC"
-  spec.dependency "Socket.IO-Client-Swift", "~> 15.2.0"
+  spec.dependency "Socket.IO-Client-Swift", "~> 16.1.1"
+  spec.dependency 'Starscream', '4.0.8'
+  spec.dependency 'CryptoSwift', '1.8.4'
+  
+  # Build setting for module stability
+  spec.pod_target_xcconfig = {
+    'BUILD_LIBRARY_FOR_DISTRIBUTION' => 'YES'
+  }
 end
